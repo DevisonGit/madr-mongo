@@ -42,11 +42,14 @@ A proposta do MADR é permitir o cadastro, listagem, atualização e remoção d
 
 ```bash 
   # Clone o repositório
-git clone https://github.com/seu-usuario/madr.git
+git clone https://github.com/DevisonGit/madr.git
 cd madr
 
 # Instale as dependências com Poetry
 poetry install
+
+# Ativar o ambiente 
+eval $(poetry env activate)
 ```
 
 ## ▶️ Como usar
@@ -54,16 +57,11 @@ poetry install
   # Iniciar a aplicação
 task run
 ```
-
-
-Acesse a documentação interativa da API em:
+Acesse a documentação interativa da API em:  
 📄 http://localhost:8000/docs
+
 ## 🧪 Executar os testes
 ```bash
   # Executar os testes
 task test
 ```
-
-
-
-
