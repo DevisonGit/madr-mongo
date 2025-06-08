@@ -1,20 +1,20 @@
 from http import HTTPStatus
 
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.madr.users.models import User
 from src.madr.users.repository import (
     create_user,
     delete_user,
     get_user,
-    get_user_id,
     update_user,
 )
 from src.madr.users.schemas import UserCreate, UserUpdate
 
 
-def create_user_service(user: UserCreate, session: Session):
-    existing_user = get_user(user.username, user.email, session)
+async def create_user_service(user: UserCreate, session: AsyncSession):
+    existing_user = await get_user(user.username, user.email, session)
     if existing_user:
         if existing_user.username == user.username:
             raise HTTPException(
@@ -25,22 +25,25 @@ def create_user_service(user: UserCreate, session: Session):
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT, detail='Email already exists'
             )
-    return create_user(user, session)
+    return await create_user(user, session)
 
 
-def update_user_service(_id: int, user: UserUpdate, session: Session):
-    db_user = get_user_id(_id, session)
-    if not db_user:
+async def update_user_service(
+    user_id: int, user: UserUpdate, session: AsyncSession, current_user: User
+):
+    if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail='User not found'
+            status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
         )
-    return update_user(user, db_user, session)
+    return await update_user(user, current_user, session)
 
 
-def delete_user_service(_id: int, session: Session):
-    db_user = get_user_id(_id, session)
-    if not db_user:
+async def delete_user_service(
+    user_id: int, session: AsyncSession, current_user: User
+):
+    if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail='User not found'
+            status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
         )
-    return delete_user(db_user, session)
+    await delete_user(current_user, session)
+    return {'message': 'User deleted'}

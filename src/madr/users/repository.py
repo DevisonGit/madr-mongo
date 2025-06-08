@@ -1,38 +1,41 @@
 from pydantic import EmailStr
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.madr.security import get_password_hash
 from src.madr.users.models import User
 from src.madr.users.schemas import UserCreate, UserUpdate
 
 
-def get_user(username: str, email: EmailStr, session: Session):
-    return session.scalar(
+async def get_user(username: str, email: EmailStr, session: AsyncSession):
+    return await session.scalar(
         select(User).where((User.username == username) | (User.email == email))
     )
 
 
-def get_user_id(_id: int, session: Session):
-    return session.scalar(select(User).where(User.id == _id))
-
-
-def create_user(user_data: UserCreate, session: Session):
-    db_user = User(**user_data.model_dump())
+async def create_user(user_data: UserCreate, session: AsyncSession):
+    data = user_data.model_dump()
+    data['password'] = get_password_hash(data['password'])
+    db_user = User(**data)
     session.add(db_user)
-    session.commit()
-    session.refresh(db_user)
+    await session.commit()
+    await session.refresh(db_user)
     return db_user
 
 
-def update_user(user_data: UserUpdate, user_db: User, session: Session):
-    for key, value in user_data.model_dump().items():
+async def update_user(
+    user_data: UserUpdate, user_db: User, session: AsyncSession
+):
+    data = user_data.model_dump()
+    data['password'] = get_password_hash(data['password'])
+    for key, value in data.items():
         setattr(user_db, key, value)
-    session.commit()
-    session.refresh(user_db)
+    await session.commit()
+    await session.refresh(user_db)
     return user_db
 
 
-def delete_user(db_user: User, session: Session):
-    session.delete(db_user)
-    session.commit()
+async def delete_user(db_user: User, session: AsyncSession):
+    await session.delete(db_user)
+    await session.commit()
     return True
