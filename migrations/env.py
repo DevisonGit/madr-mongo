@@ -7,7 +7,11 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from src.madr.users.models import table_registry
+from src.madr.users import models
+from src.madr.authors import models
+from src.madr.books import models
+
+from src.madr.database import table_registry
 from src.madr.settings import Settings
 
 # this is the Alembic Config object, which provides
