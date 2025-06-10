@@ -25,7 +25,7 @@ async def delete_author(author_data: Author, session: AsyncSession):
 async def patch_author(
     author_data: AuthorUpdate, author_db: Author, session: AsyncSession
 ):
-    data = author_data.model_dump()
+    data = author_data.model_dump(exclude_unset=True)
     for key, value in data.items():
         setattr(author_db, key, value)
     await session.commit()
