@@ -13,16 +13,14 @@ from src.madr.authors.repository import (
     patch_author,
 )
 from src.madr.authors.schemas import AuthorCreate, AuthorUpdate, FilterAuthor
-from src.madr.utils.sanitize import name_in, name_in_out, name_out
+from src.madr.utils.sanitize import name_in, name_in_out
 
 
 async def create_author_service(author: AuthorCreate, session: AsyncSession):
     try:
         db_author = Author(**author.model_dump())
         db_author.name = name_in(db_author.name)
-        author_db_return = await create_author(db_author, session)
-        author_db_return.name = name_out(author_db_return.name)
-        return author_db_return
+        return await create_author(db_author, session)
     except IntegrityError:
         raise HTTPException(
             status_code=HTTPStatus.CONFLICT,
