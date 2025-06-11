@@ -58,7 +58,8 @@ async def patch_book_service(
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail='Author not found'
             )
-    book.title = name_in(book.title)
+    if book.title:
+        book.title = name_in(book.title)
     return await patch_book(book, book_db, session)
 
 

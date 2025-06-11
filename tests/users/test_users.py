@@ -63,9 +63,9 @@ def test_update_user(client, user, token):
     }
 
 
-def test_update_user_not_enough(client, token):
+def test_update_user_not_enough(client, other_user, token):
     response = client.put(
-        '/users/2',
+        f'/users/{other_user.id}',
         headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'test update',
@@ -88,9 +88,9 @@ def test_delete_user(client, user, token):
     assert response.json() == {'message': 'User deleted'}
 
 
-def test_delete_user_not_enough(client, token):
+def test_delete_user_not_enough(client, other_user, token):
     response = client.delete(
-        '/users/2',
+        f'/users/{other_user.id}',
         headers={'Authorization': f'Bearer {token}'},
     )
 
