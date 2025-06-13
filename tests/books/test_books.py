@@ -60,7 +60,7 @@ async def test_create_book_already_exists(client, author, book, token):
     assert response.json() == {'detail': f'{name} already exists in MADR'}
 
 
-def test_delete_book(client, book, token):
+def test_delete_book(client, author, book, token):
     response = client.delete(
         f'/books/{book.id}',
         headers={'Authorization': f'Bearer {token}'},
@@ -69,7 +69,7 @@ def test_delete_book(client, book, token):
     assert response.json() == {'message': 'Book deleted in MADR'}
 
 
-def test_delete_book_not_token(client, book):
+def test_delete_book_not_token(client, author, book):
     response = client.delete(
         f'/books/{book.id}',
         headers={'Authorization': 'Bearer invalid'},
@@ -78,7 +78,7 @@ def test_delete_book_not_token(client, book):
     assert response.json() == {'detail': 'Could not validate credentials'}
 
 
-def test_delete_book_not_found(client, book, token):
+def test_delete_book_not_found(client, author, book, token):
     response = client.delete(
         f'/books/{book.id + 1}',
         headers={'Authorization': f'Bearer {token}'},
@@ -192,7 +192,7 @@ def test_get_books_empty_list(client, token):
 
 
 @pytest.mark.asyncio
-async def test_get_authors_return_5_authors(session, client, token):
+async def test_get_authors_return_5_authors(session, author, client, token):
     expected_books = 5
     session.add_all(BookFactory.create_batch(5))
     await session.commit()
@@ -205,7 +205,7 @@ async def test_get_authors_return_5_authors(session, client, token):
 
 
 @pytest.mark.asyncio
-async def test_get_books_filter_title(session, client, token):
+async def test_get_books_filter_title(session, author, client, token):
     expect_books = 1
     session.add_all(BookFactory.create_batch(5))
     await session.commit()
@@ -226,7 +226,7 @@ async def test_get_books_filter_title(session, client, token):
 
 
 @pytest.mark.asyncio
-async def test_get_books_filter_year(session, client, token):
+async def test_get_books_filter_year(session, author, client, token):
     expect_books = 1
     session.add_all(BookFactory.create_batch(5))
     await session.commit()
@@ -247,7 +247,7 @@ async def test_get_books_filter_year(session, client, token):
 
 
 @pytest.mark.asyncio
-async def test_get_books_filter_year_and_title(session, client, token):
+async def test_get_books_filter_year_and_title(session, author, client, token):
     expect_books = 1
     session.add_all(BookFactory.create_batch(5))
     await session.commit()
