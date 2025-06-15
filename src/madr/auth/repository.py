@@ -1,8 +1,7 @@
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from src.madr.database import db
 
-from src.madr.users.models import User
+users_collection = db['users']
 
 
-def get_user_id(username: str, session: AsyncSession):
-    return session.scalar(select(User).where(User.email == username))
+async def get_user_id(username: str):
+    return await users_collection.find_one({'email': username})

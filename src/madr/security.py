@@ -4,14 +4,11 @@ from zoneinfo import ZoneInfo
 
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from jwt import decode, encode, DecodeError, ExpiredSignatureError
+from jwt import DecodeError, ExpiredSignatureError, decode, encode
 from pwdlib import PasswordHash
-from bson import ObjectId
 
 from src.madr.database import db  # client motor
 from src.madr.settings import Settings
-from src.madr.users.models import User  # Pydantic model User
-
 
 pwd_context = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/token')
@@ -37,7 +34,7 @@ def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exceptions = HTTPException(
         status_code=HTTPStatus.UNAUTHORIZED,
         detail='Could not validate credentials',
@@ -54,10 +51,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     except (DecodeError, ExpiredSignatureError):
         raise credentials_exceptions
 
-    user_data = await db.users.find_one({"email": subject_email})
+    user_data = await db.users.find_one({'email': subject_email})
     if not user_data:
         raise credentials_exceptions
 
-    # Converte dict do Mongo para Pydantic User
-    user_data["id"] = str(user_data["_id"])
-    return User(**user_data)
+    user_data['id'] = str(user_data['_id'])
+    return user_data

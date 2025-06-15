@@ -1,4 +1,3 @@
-
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -7,11 +6,11 @@ from fastapi.security import OAuth2PasswordRequestForm
 from src.madr.auth.schemas import Token
 from src.madr.auth.service import create_token_service, refresh_token_service
 from src.madr.security import get_current_user
-from src.madr.users.models import User
+from src.madr.users.schemas import UserPublic
 
 router = APIRouter(prefix='/auth', tags=['auth'])
 OAuth2 = Annotated[OAuth2PasswordRequestForm, Depends()]
-CurrentUser = Annotated[User, Depends(get_current_user)]
+CurrentUser = Annotated[UserPublic, Depends(get_current_user)]
 
 
 @router.post('/token', response_model=Token)
