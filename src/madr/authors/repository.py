@@ -1,44 +1,53 @@
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from bson import ObjectId
 
-from src.madr.authors.models import Author
-from src.madr.authors.schemas import AuthorUpdate, FilterAuthor
+from src.madr.authors.schemas import AuthorPublic, FilterAuthor
+from src.madr.database import db
 
-
-async def get_author_by_id(author_id: int, session: AsyncSession):
-    return await session.scalar(select(Author).where(Author.id == author_id))
+authors_collection = db['authors']
 
 
-async def create_author(author_data: Author, session: AsyncSession):
-    session.add(author_data)
-    await session.commit()
-    await session.refresh(author_data)
-    return author_data
+def author_helper(author):
+    author['id'] = str(author['_id'])
+    return author
 
 
-async def delete_author(author_data: Author, session: AsyncSession):
-    await session.delete(author_data)
-    await session.commit()
-    return True
+async def get_author_by_id(author_id: str):
+    author = await authors_collection.find_one({'_id': ObjectId(author_id)})
+    author = author_helper(author)
+    return AuthorPublic(**author)
 
 
-async def patch_author(
-    author_data: AuthorUpdate, author_db: Author, session: AsyncSession
-):
-    data = author_data.model_dump(exclude_unset=True)
-    for key, value in data.items():
-        setattr(author_db, key, value)
-    await session.commit()
-    await session.refresh(author_db)
-    return author_db
+async def create_author(author_data: dict):
+    result = await authors_collection.insert_one(author_data)
+    new_author = await authors_collection.find_one({'_id': result.inserted_id})
+    new_author = author_helper(new_author)
+    return AuthorPublic(**new_author)
 
 
-async def get_authors(author_filter: FilterAuthor, session: AsyncSession):
-    query = select(Author)
-    if author_filter.name:
-        query = query.filter(Author.name.contains(author_filter.name))
-    authors = await session.scalars(
-        query.offset(author_filter.offset).limit(author_filter.limit)
+async def delete_author(author_id: str):
+    return await authors_collection.delete_one({'_id': ObjectId(author_id)})
+
+
+async def patch_author(author_id: str, author_data: dict):
+    await authors_collection.update_one(
+        {'_id': ObjectId(author_id)}, {'$set': author_data}
     )
-    authors = authors.all()
+    updated_author = await authors_collection.find_one({
+        '_id': ObjectId(author_id)
+    })
+    updated_author = author_helper(updated_author)
+    return AuthorPublic(**updated_author)
+
+
+async def get_authors(author_filter: FilterAuthor):
+    query = {}
+    if author_filter.name:
+        query['name'] = {'$regex': author_filter.name, '$options': 'i'}
+    cursor = (
+        authors_collection.find(query)
+        .skip(author_filter.offset)
+        .limit(author_filter.limit)
+    )
+    authors = await cursor.to_list(length=author_filter.limit)
+    authors = [AuthorPublic(**author_helper(author)) for author in authors]
     return authors

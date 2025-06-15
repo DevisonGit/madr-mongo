@@ -16,7 +16,7 @@ class AuthorUpdate(AuthorBase):
 
 
 class AuthorPublic(AuthorBase):
-    id: int
+    id: str
 
 
 class FilterAuthor(FilterPage):

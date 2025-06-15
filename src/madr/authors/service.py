@@ -1,10 +1,8 @@
+from datetime import datetime
 from http import HTTPStatus
 
 from fastapi import HTTPException
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.madr.authors.models import Author
 from src.madr.authors.repository import (
     create_author,
     delete_author,
@@ -13,45 +11,42 @@ from src.madr.authors.repository import (
     patch_author,
 )
 from src.madr.authors.schemas import AuthorCreate, AuthorUpdate, FilterAuthor
-from src.madr.utils.sanitize import name_in, name_in_out
+from src.madr.utils.sanitize import name_in
 
 
-async def create_author_service(author: AuthorCreate, session: AsyncSession):
-    try:
-        db_author = Author(**author.model_dump())
-        db_author.name = name_in(db_author.name)
-        return await create_author(db_author, session)
-    except IntegrityError:
-        raise HTTPException(
-            status_code=HTTPStatus.CONFLICT,
-            detail=f'{name_in_out(author.name)} already exists in MADR',
-        )
+async def create_author_service(author: AuthorCreate):
+    author_dict = author.model_dump()
+    author_dict['name'] = name_in(author_dict['name'])
+    author_dict['created_at'] = datetime.now()
+    author_dict['updated_at'] = datetime.now()
+    return await create_author(author_dict)
 
 
-async def delete_author_service(author_id: int, session: AsyncSession):
-    author = await get_author_by_id(author_id, session)
+async def delete_author_service(author_id: str):
+    author = await get_author_by_id(author_id)
     if not author:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='Author not found in MADR'
         )
-    await delete_author(author, session)
+    await delete_author(author_id)
     return {'message': 'Author deleted in MADR'}
 
 
-async def patch_author_service(
-    author_id: int, author: AuthorUpdate, session: AsyncSession
-):
-    author_data = await get_author_by_id(author_id, session)
-    if not author_data:
+async def patch_author_service(author_id: str, author: AuthorUpdate):
+    author_db = await get_author_by_id(author_id)
+    if not author_db:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='Author not found in MADR'
         )
-    author.name = name_in(author.name)
-    return await patch_author(author, author_data, session)
+    author_dict = author.model_dump(exclude_unset=True)
+    author_dict['name'] = name_in(author_dict['name'])
+    author_dict['updated_at'] = datetime.now()
+    author_dict = {k: v for k, v in author_dict.items()}
+    return await patch_author(author_id, author_dict)
 
 
-async def get_author_service(author_id: int, session: AsyncSession):
-    author = await get_author_by_id(author_id, session)
+async def get_author_service(author_id: str):
+    author = await get_author_by_id(author_id)
     if not author:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='Author not found in MADR'
@@ -59,8 +54,6 @@ async def get_author_service(author_id: int, session: AsyncSession):
     return author
 
 
-async def get_authors_service(
-    author_filter: FilterAuthor, session: AsyncSession
-):
-    author = await get_authors(author_filter, session)
+async def get_authors_service(author_filter: FilterAuthor):
+    author = await get_authors(author_filter)
     return {'authors': author}

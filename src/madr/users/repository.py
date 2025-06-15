@@ -1,4 +1,5 @@
 from bson import ObjectId
+from pydantic import EmailStr
 
 from src.madr.database import db
 
@@ -13,7 +14,7 @@ def user_helper(user) -> dict:
     }
 
 
-async def get_user_by_email(email: str):
+async def get_user_by_email(email: EmailStr):
     return await users_collection.find_one({'email': email})
 
 
