@@ -15,4 +15,4 @@ class UserUpdate(UserCreate):
 
 
 class UserPublic(UserBase):
-    id: int
+    id: str

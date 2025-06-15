@@ -1,22 +1,21 @@
+# models/book.py
+from pydantic import BaseModel, Field
+from typing import Optional
 from datetime import datetime
-
-from sqlalchemy import ForeignKey, func
-from sqlalchemy.orm import Mapped, mapped_column
-
-from src.madr.database import table_registry
+from bson import ObjectId
 
 
-@table_registry.mapped_as_dataclass
-class Book:
-    __tablename__ = 'books'
+class Book(BaseModel):
+    id: Optional[str] = Field(default=None, alias="_id")
+    title: str
+    year: int
+    author_id: str  # Aqui vai o _id do autor (como string)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
 
-    id: Mapped[int] = mapped_column(init=False, primary_key=True)
-    title: Mapped[str] = mapped_column(unique=True)
-    year: Mapped[int]
-    created_at: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        init=False, server_default=func.now(), onupdate=func.now()
-    )
-    author_id: Mapped[int] = mapped_column(ForeignKey('authors.id'))
+    class Config:
+        allow_population_by_field_name = True
+        json_encoders = {
+            ObjectId: str
+        }
+

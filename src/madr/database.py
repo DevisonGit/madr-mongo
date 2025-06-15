@@ -1,12 +1,7 @@
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import registry
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from src.madr.settings import Settings
 
-engine = create_async_engine(Settings().DATABASE_URL)
-table_registry = registry()
-
-
-async def get_session():
-    async with AsyncSession(engine, expire_on_commit=False) as session:
-        yield session
+settings = Settings()
+client = AsyncIOMotorClient(settings.DATABASE_URL)  # Exemplo: mongodb://mongo:27017
+db = client["ap_mongo_db"]  # Substitua com o nome real do seu banco

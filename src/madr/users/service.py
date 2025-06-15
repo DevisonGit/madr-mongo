@@ -1,63 +1,93 @@
 from http import HTTPStatus
-
 from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from bson import ObjectId
 
 from src.madr.security import get_password_hash
 from src.madr.users.models import User
-from src.madr.users.repository import (
-    create_user,
-    delete_user,
-    get_user,
-    update_user,
-)
 from src.madr.users.schemas import UserCreate, UserUpdate
+from src.madr.database import db  # motor client
 from src.madr.utils.sanitize import name_in
 
 
-async def create_user_service(user: UserCreate, session: AsyncSession):
-    existing_user = await get_user(user.username, user.email, session)
+from datetime import datetime
+
+async def create_user_service(user: UserCreate):
+    # Verifica se username ou email já existem
+    existing_user = await db.users.find_one({
+        "$or": [
+            {"username": user.username},
+            {"email": user.email}
+        ]
+    })
     if existing_user:
-        if existing_user.username == user.username:
+        if existing_user["username"] == user.username:
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT,
-                detail='Username already exists',
+                detail="Username already exists"
             )
-        elif existing_user.email == user.email:
+        if existing_user["email"] == user.email:
             raise HTTPException(
-                status_code=HTTPStatus.CONFLICT, detail='Email already exists'
+                status_code=HTTPStatus.CONFLICT,
+                detail="Email already exists"
             )
 
-    user_db = User(**user.model_dump())
-    user_db.username = name_in(user_db.username)
-    user_db.password = get_password_hash(user_db.password)
+    now = datetime.now()
 
-    return await create_user(user_db, session)
+    user_dict = user.dict()
+    user_dict["username"] = name_in(user_dict["username"])
+    user_dict["password"] = get_password_hash(user_dict["password"])
+    user_dict["created_at"] = now
+    user_dict["updated_at"] = now
+
+    result = await db.users.insert_one(user_dict)
+    user_dict["_id"] = str(result.inserted_id)
 
 
-async def update_user_service(
-    user_id: int, user: UserUpdate, session: AsyncSession, current_user: User
-):
+    return User(**user_dict)
+
+
+
+from datetime import datetime
+
+async def update_user_service(user_id: str, user: UserUpdate, current_user: User):
     if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Not enough permissions"
         )
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid user ID")
 
-    user_db = user.model_dump()
-    user_db['username'] = name_in(user_db['username'])
-    user_db['password'] = get_password_hash(user_db['password'])
-    for key, value in user_db.items():
-        setattr(current_user, key, value)
+    user_data = user.dict(exclude_unset=True)
+    if "username" in user_data:
+        user_data["username"] = name_in(user_data["username"])
+    if "password" in user_data:
+        user_data["password"] = get_password_hash(user_data["password"])
 
-    return await update_user(current_user, session)
+    user_data["updated_at"] = datetime.now()
+
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": user_data}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    updated_user = await db.users.find_one({"_id": ObjectId(user_id)})
+    return User(**updated_user)
 
 
-async def delete_user_service(
-    user_id: int, session: AsyncSession, current_user: User
-):
+async def delete_user_service(user_id: str, current_user: User):
     if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail='Not enough permissions'
+            status_code=HTTPStatus.FORBIDDEN,
+            detail="Not enough permissions"
         )
-    await delete_user(current_user, session)
-    return {'message': 'User deleted'}
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+
+    result = await db.users.delete_one({"_id": ObjectId(user_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"message": "User deleted"}

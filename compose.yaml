@@ -1,34 +1,28 @@
+version: "3.8"
+
 services:
-  madr_database:
-    image: postgres
+  madr_mongo:
+    image: mongo:7
+    container_name: madr_mongo
+    ports:
+      - "27017:27017"
     environment:
       - TZ=America/Sao_Paulo
-      - PGTZ=America/Sao_Paulo
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    env_file:
-      - .env
+      - mongo_data:/data/db
 
   madr_app:
     image: madr_app
-    entrypoint: ./entrypoint.sh
     build: .
+    entrypoint: ./entrypoint.sh
     ports:
       - "8000:8000"
     depends_on:
-      madr_database:
-        condition: service_healthy
+      - madr_mongo
     env_file:
       - .env
     environment:
       - TZ=America/Sao_Paulo
 
 volumes:
-  pgdata:
+  mongo_data:
