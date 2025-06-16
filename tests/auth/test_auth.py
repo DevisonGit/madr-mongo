@@ -1,12 +1,17 @@
 from http import HTTPStatus
 
+import pytest
 from freezegun import freeze_time
 
 
-def test_get_token(client, user):
-    response = client.post(
+@pytest.mark.asyncio
+async def test_get_token(client, user):
+    response = await client.post(
         '/auth/token',
-        data={'username': user.email, 'password': user.clean_password},
+        data={
+            'username': user['email'],
+            'password': user['clean_password'],
+        },
     )
     token = response.json()
 
@@ -15,27 +20,31 @@ def test_get_token(client, user):
     assert 'token_type' in token
 
 
-def test_get_token_not_user(client, user):
-    response = client.post(
+@pytest.mark.asyncio
+async def test_get_token_not_user(client, user):
+    response = await client.post(
         '/auth/token',
-        data={'username': 'not valid', 'password': user.clean_password},
+        data={'username': 'not valid', 'password': user['clean_password']},
     )
 
     assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json() == {'detail': 'Incorrect email or password'}
 
 
-def test_get_token_not_verify_password(client, user):
-    response = client.post(
-        '/auth/token', data={'username': user.email, 'password': 'not valid'}
+@pytest.mark.asyncio
+async def test_get_token_not_verify_password(client, user):
+    response = await client.post(
+        '/auth/token',
+        data={'username': user['email'], 'password': 'not valid'},
     )
 
     assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json() == {'detail': 'Incorrect email or password'}
 
 
-def test_refresh_token(client, user, token):
-    response = client.post(
+@pytest.mark.asyncio
+async def test_refresh_token(client, user, token):
+    response = await client.post(
         '/auth/refresh-token', headers={'Authorization': f'Bearer {token}'}
     )
 
@@ -47,17 +56,21 @@ def test_refresh_token(client, user, token):
     assert data['token_type'] == 'bearer'
 
 
-def test_token_expired_dont_refresh(client, user):
+@pytest.mark.asyncio
+async def test_token_expired_dont_refresh(client, user):
     with freeze_time('2025-01-01 12:00:00'):
-        response = client.post(
+        response = await client.post(
             '/auth/token',
-            data={'username': user.email, 'password': user.clean_password},
+            data={
+                'username': user['email'],
+                'password': user['clean_password'],
+            },
         )
         assert response.status_code == HTTPStatus.OK
         token = response.json()['access_token']
 
     with freeze_time('2025-01-01 13:01:00'):
-        response = client.post(
+        response = await client.post(
             '/auth/refresh-token', headers={'Authorization': f'Bearer {token}'}
         )
         assert response.status_code == HTTPStatus.UNAUTHORIZED

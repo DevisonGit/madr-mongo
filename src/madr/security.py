@@ -5,16 +5,17 @@ from zoneinfo import ZoneInfo
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jwt import DecodeError, ExpiredSignatureError, decode, encode
+from motor.motor_asyncio import AsyncIOMotorCollection
 from pwdlib import PasswordHash
 
-from src.madr.database import db  # client motor
+from src.madr.database import get_users_collection
 from src.madr.settings import Settings
 
 pwd_context = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/token')
 
 
-def create_access_token(data: dict):
+async def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.now(tz=ZoneInfo('America/Sao_Paulo')) + timedelta(
         minutes=Settings().ACCESS_TOKEN_EXPIRE_MINUTES
@@ -34,7 +35,10 @@ def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    users_collection: AsyncIOMotorCollection = get_users_collection(),
+):
     credentials_exceptions = HTTPException(
         status_code=HTTPStatus.UNAUTHORIZED,
         detail='Could not validate credentials',
@@ -51,7 +55,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     except (DecodeError, ExpiredSignatureError):
         raise credentials_exceptions
 
-    user_data = await db.users.find_one({'email': subject_email})
+    user_data = await users_collection.find_one({'email': subject_email})
     if not user_data:
         raise credentials_exceptions
 

@@ -11,9 +11,10 @@ from src.madr.security import (
 from src.madr.users.schemas import UserPublic
 
 
-async def create_token_service(form_data: OAuth2PasswordRequestForm):
-    user = await repository.get_user_id(form_data.username)
-
+async def create_token_service(
+    form_data: OAuth2PasswordRequestForm, users_collection
+):
+    user = await repository.get_user_id(form_data.username, users_collection)
     if not user:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,
@@ -26,12 +27,14 @@ async def create_token_service(form_data: OAuth2PasswordRequestForm):
             detail='Incorrect email or password',
         )
 
-    access_token = create_access_token(data={'sub': user.get('email')})
+    access_token = await create_access_token(data={'sub': user.get('email')})
 
     return {'access_token': access_token, 'token_type': 'bearer'}
 
 
-def refresh_token_service(current_user: UserPublic):
-    access_token = create_access_token(data={'sub': current_user.get('email')})
+async def refresh_token_service(current_user: UserPublic):
+    access_token = await create_access_token(
+        data={'sub': current_user.get('email')}
+    )
 
     return {'access_token': access_token, 'token_type': 'bearer'}

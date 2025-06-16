@@ -16,12 +16,14 @@ from src.madr.books.schemas import BookCreate, BookFilter, BookUpdate
 from src.madr.utils.sanitize import name_in
 
 
-async def create_book_service(book: BookCreate):
+async def create_book_service(
+    book: BookCreate, book_collection, authors_collection
+):
     if not ObjectId.is_valid(book.author_id):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail='ID invalid'
         )
-    author = await get_author_by_id(book.author_id)
+    author = await get_author_by_id(book.author_id, authors_collection)
     if not author:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='Author not found in MADR'
@@ -30,31 +32,33 @@ async def create_book_service(book: BookCreate):
     book_dict['title'] = name_in(book_dict['title'])
     book_dict['created_at'] = datetime.now()
     book_dict['updated_at'] = datetime.now()
-    return await create_book(book_dict)
+    return await create_book(book_dict, book_collection)
 
 
-async def delete_book_service(book_id: str):
+async def delete_book_service(book_id: str, book_collection):
     if not ObjectId.is_valid(book_id):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, detail='ID invalid'
         )
-    book = await get_book_id(book_id)
+    book = await get_book_id(book_id, book_collection)
     if not book:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='Book not found in MADR'
         )
-    await delete_book(book_id)
+    await delete_book(book_id, book_collection)
     return {'message': 'Book deleted in MADR'}
 
 
-async def patch_book_service(book_id: str, book: BookUpdate):
-    book_db = await get_book_id(book_id)
+async def patch_book_service(
+    book_id: str, book: BookUpdate, book_collection, authors_collection
+):
+    book_db = await get_book_id(book_id, book_collection)
     if not book_db:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='Book not found in MADR'
         )
     if book.author_id:
-        author = await get_author_by_id(book.author_id)
+        author = await get_author_by_id(book.author_id, authors_collection)
         if not author:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, detail='Author not found'
@@ -64,16 +68,16 @@ async def patch_book_service(book_id: str, book: BookUpdate):
     book_dict = book.model_dump(exclude_unset=True)
     book_dict['updated_at'] = datetime.now()
     book_dict = {k: v for k, v in book_dict.items()}
-    return await patch_book(book_id, book_dict)
+    return await patch_book(book_id, book_dict, book_collection)
 
 
-async def get_books_service(book_filter: BookFilter):
-    books = await get_books(book_filter)
+async def get_books_service(book_filter: BookFilter, book_collection):
+    books = await get_books(book_filter, book_collection)
     return {'books': books}
 
 
-async def get_book_service(book_id: str):
-    book_db = await get_book_id(book_id)
+async def get_book_service(book_id: str, book_collection):
+    book_db = await get_book_id(book_id, book_collection)
     if not book_db:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,

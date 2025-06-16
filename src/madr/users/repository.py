@@ -1,10 +1,6 @@
 from bson import ObjectId
 from pydantic import EmailStr
 
-from src.madr.database import db
-
-users_collection = db['users']
-
 
 def user_helper(user) -> dict:
     return {
@@ -14,17 +10,17 @@ def user_helper(user) -> dict:
     }
 
 
-async def get_user_by_email(email: EmailStr):
+async def get_user_by_email(email: EmailStr, users_collection):
     return await users_collection.find_one({'email': email})
 
 
-async def create_user(user_data: dict):
+async def create_user(user_data: dict, users_collection):
     result = await users_collection.insert_one(user_data)
     new_user = await users_collection.find_one({'_id': result.inserted_id})
     return user_helper(new_user)
 
 
-async def update_user(user_id: str, user_data: dict):
+async def update_user(user_id: str, user_data: dict, users_collection):
     await users_collection.update_one(
         {'_id': ObjectId(user_id)}, {'$set': user_data}
     )
@@ -32,5 +28,5 @@ async def update_user(user_id: str, user_data: dict):
     return user_helper(updated_user)
 
 
-async def delete_user(user_id: str):
+async def delete_user(user_id: str, users_collection):
     return await users_collection.delete_one({'_id': ObjectId(user_id)})
