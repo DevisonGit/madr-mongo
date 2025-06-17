@@ -6,7 +6,7 @@ Neste projeto vamos construir uma API que segue os mesmos moldes da que desenvol
 
 ## 🧾 Descrição
 
-A proposta do MADR é permitir o cadastro, listagem, atualização e remoção de livros em um acervo digital. A aplicação é baseada em uma API REST desenvolvida com **FastAPI** e utiliza **Postgres** como banco de dados.
+A proposta do MADR é permitir o cadastro, listagem, atualização e remoção de livros em um acervo digital. A aplicação é baseada em uma API REST desenvolvida com **FastAPI** e utiliza **MongoDB** como banco de dados.
 
 ---
 
@@ -24,7 +24,7 @@ A proposta do MADR é permitir o cadastro, listagem, atualização e remoção d
 
 - [Python](https://www.python.org/)
 - [FastAPI](https://fastapi.tiangolo.com/)
-- [Postgres](https://www.postgresql.org/)
+- [MongoDB](https://www.mongodb.com/)
 - [Pydantic](https://docs.pydantic.dev/) para validação de dados
 - [Uvicorn](https://www.uvicorn.org/) como servidor ASGI
 - [Docker](https://www.docker.com/)
@@ -35,7 +35,7 @@ A proposta do MADR é permitir o cadastro, listagem, atualização e remoção d
 
 - Python 3.10+
 - Poetry (ou pip)
-- Postgres
+- MongoDB
 - Docker
 
 ---
