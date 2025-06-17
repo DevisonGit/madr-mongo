@@ -3,15 +3,15 @@ from http import HTTPStatus
 from fastapi import Depends, HTTPException, Request
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 
-from src.madr.settings import settings
+from src.madr.settings import Settings
 
 
 def get_motor_client() -> AsyncIOMotorClient:
-    return AsyncIOMotorClient(settings.DATABASE_URL)
+    return AsyncIOMotorClient(Settings().DATABASE_URL)
 
 
 def get_db_name():
-    return settings.DATABASE_URL.split('/')[-1]
+    return Settings().DATABASE_URL.split('/')[-1]
 
 
 def get_database(client: AsyncIOMotorClient = None):
