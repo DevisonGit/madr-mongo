@@ -3,6 +3,7 @@ from http import HTTPStatus
 
 from bson import ObjectId
 from fastapi import HTTPException
+from pymongo.errors import DuplicateKeyError
 
 from src.madr.authors.repository import get_author_by_id
 from src.madr.books.repository import (
@@ -12,8 +13,18 @@ from src.madr.books.repository import (
     get_books,
     patch_book,
 )
-from src.madr.books.schemas import BookCreate, BookFilter, BookUpdate
-from src.madr.utils.sanitize import name_in
+from src.madr.books.schemas import (
+    BookCreate,
+    BookFilter,
+    BookPublic,
+    BookUpdate,
+)
+from src.madr.utils.sanitize import name_in, name_in_out
+
+
+def book_helper(book):
+    book['id'] = str(book['_id'])
+    return book
 
 
 async def create_book_service(
@@ -28,11 +39,20 @@ async def create_book_service(
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='Author not found in MADR'
         )
-    book_dict = book.model_dump()
-    book_dict['title'] = name_in(book_dict['title'])
-    book_dict['created_at'] = datetime.now()
-    book_dict['updated_at'] = datetime.now()
-    return await create_book(book_dict, book_collection)
+    try:
+        book_dict = book.model_dump()
+        book_dict['title'] = name_in(book_dict['title'])
+        book_dict['created_at'] = datetime.now()
+        book_dict['updated_at'] = datetime.now()
+        new_book = await create_book(book_dict, book_collection)
+        new_book = book_helper(new_book)
+        return BookPublic(**new_book)
+    except DuplicateKeyError:
+        name = name_in_out(book.title)
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail=f'{name} already exists in MADR',
+        )
 
 
 async def delete_book_service(book_id: str, book_collection):
@@ -68,11 +88,14 @@ async def patch_book_service(
     book_dict = book.model_dump(exclude_unset=True)
     book_dict['updated_at'] = datetime.now()
     book_dict = {k: v for k, v in book_dict.items()}
-    return await patch_book(book_id, book_dict, book_collection)
+    updated_book = await patch_book(book_id, book_dict, book_collection)
+    updated_book = book_helper(updated_book)
+    return BookPublic(**updated_book)
 
 
 async def get_books_service(book_filter: BookFilter, book_collection):
     books = await get_books(book_filter, book_collection)
+    books = [BookPublic(**book_helper(book)) for book in books]
     return {'books': books}
 
 
@@ -83,4 +106,5 @@ async def get_book_service(book_id: str, book_collection):
             status_code=HTTPStatus.NOT_FOUND,
             detail='Book not found in MADR',
         )
-    return book_db
+    book = book_helper(book_db)
+    return BookPublic(**book)

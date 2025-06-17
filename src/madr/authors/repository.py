@@ -1,24 +1,15 @@
 from bson import ObjectId
 
-from src.madr.authors.schemas import AuthorPublic, FilterAuthor
-
-
-def author_helper(author):
-    author['id'] = str(author['_id'])
-    return author
+from src.madr.authors.schemas import FilterAuthor
 
 
 async def get_author_by_id(author_id: str, authors_collection):
-    author = await authors_collection.find_one({'_id': ObjectId(author_id)})
-    author = author_helper(author)
-    return AuthorPublic(**author)
+    return await authors_collection.find_one({'_id': ObjectId(author_id)})
 
 
 async def create_author(author_data: dict, authors_collection):
     result = await authors_collection.insert_one(author_data)
-    new_author = await authors_collection.find_one({'_id': result.inserted_id})
-    new_author = author_helper(new_author)
-    return AuthorPublic(**new_author)
+    return await authors_collection.find_one({'_id': result.inserted_id})
 
 
 async def delete_author(author_id: str, authors_collection):
@@ -29,11 +20,7 @@ async def patch_author(author_id: str, author_data: dict, authors_collection):
     await authors_collection.update_one(
         {'_id': ObjectId(author_id)}, {'$set': author_data}
     )
-    updated_author = await authors_collection.find_one({
-        '_id': ObjectId(author_id)
-    })
-    updated_author = author_helper(updated_author)
-    return AuthorPublic(**updated_author)
+    return await authors_collection.find_one({'_id': ObjectId(author_id)})
 
 
 async def get_authors(author_filter: FilterAuthor, authors_collection):
@@ -45,6 +32,4 @@ async def get_authors(author_filter: FilterAuthor, authors_collection):
         .skip(author_filter.offset)
         .limit(author_filter.limit)
     )
-    authors = await cursor.to_list(length=author_filter.limit)
-    authors = [AuthorPublic(**author_helper(author)) for author in authors]
-    return authors
+    return await cursor.to_list(length=author_filter.limit)

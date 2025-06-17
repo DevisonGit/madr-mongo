@@ -1,9 +1,13 @@
 from http import HTTPStatus
 
+import pytest
+from bson import ObjectId
 
-def test_create_user(client):
-    response = client.post(
-        '/users',
+
+@pytest.mark.asyncio
+async def test_create_user(client):
+    response = await client.post(
+        '/users/',
         json={
             'username': 'alice',
             'email': 'alice@example.com',
@@ -11,18 +15,16 @@ def test_create_user(client):
         },
     )
     assert response.status_code == HTTPStatus.CREATED
-    assert response.json() == {
-        'username': 'alice',
-        'email': 'alice@example.com',
-        'id': 1,
-    }
+    assert response.json()['username'] == 'alice'
+    assert ObjectId.is_valid(response.json()['id'])
 
 
-def test_create_user_conflict_username(client, user):
-    response = client.post(
-        '/users',
+@pytest.mark.asyncio
+async def test_create_user_conflict_username(client, user):
+    response = await client.post(
+        '/users/',
         json={
-            'username': user.username,
+            'username': user['username'],
             'email': 'alice@example.com',
             'password': 'secret',
         },
@@ -31,12 +33,13 @@ def test_create_user_conflict_username(client, user):
     assert response.json() == {'detail': 'Username already exists'}
 
 
-def test_create_user_conflict_email(client, user):
-    response = client.post(
-        '/users',
+@pytest.mark.asyncio
+async def test_create_user_conflict_email(client, user):
+    response = await client.post(
+        '/users/',
         json={
             'username': 'alice',
-            'email': user.email,
+            'email': user['email'],
             'password': 'secret',
         },
     )
@@ -44,28 +47,30 @@ def test_create_user_conflict_email(client, user):
     assert response.json() == {'detail': 'Email already exists'}
 
 
-def test_update_user(client, user, token):
-    response = client.put(
-        f'/users/{user.id}',
+@pytest.mark.asyncio
+async def test_update_user(client, user, token):
+    response = await client.put(
+        f'/users/{user["_id"]}',
         headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'test update',
-            'email': user.email,
+            'email': user['email'],
             'password': 'secret',
         },
     )
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
-        'id': user.id,
-        'email': user.email,
+        'id': user['_id'],
+        'email': user['email'],
         'username': 'test update',
     }
 
 
-def test_update_user_not_enough(client, other_user, token):
-    response = client.put(
-        f'/users/{other_user.id}',
+@pytest.mark.asyncio
+async def test_update_user_not_enough(client, other_user, token):
+    response = await client.put(
+        f'/users/{other_user["_id"]}',
         headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'test update',
@@ -78,9 +83,10 @@ def test_update_user_not_enough(client, other_user, token):
     assert response.json() == {'detail': 'Not enough permissions'}
 
 
-def test_delete_user(client, user, token):
-    response = client.delete(
-        f'/users/{user.id}',
+@pytest.mark.asyncio
+async def test_delete_user(client, user, token):
+    response = await client.delete(
+        f'/users/{user["_id"]}',
         headers={'Authorization': f'Bearer {token}'},
     )
 
@@ -88,9 +94,10 @@ def test_delete_user(client, user, token):
     assert response.json() == {'message': 'User deleted'}
 
 
-def test_delete_user_not_enough(client, other_user, token):
-    response = client.delete(
-        f'/users/{other_user.id}',
+@pytest.mark.asyncio
+async def test_delete_user_not_enough(client, other_user, token):
+    response = await client.delete(
+        f'/users/{other_user["_id"]}',
         headers={'Authorization': f'Bearer {token}'},
     )
 

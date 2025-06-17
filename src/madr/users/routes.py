@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -12,7 +13,7 @@ router = APIRouter(prefix='/users', tags=['users'])
 CurrentUser = Annotated[UserPublic, Depends(get_current_user)]
 
 
-@router.post('/')
+@router.post('/', status_code=HTTPStatus.CREATED)
 async def create_user(
     user: UserCreate,
     users_collection: AsyncIOMotorCollection = get_users_collection(),

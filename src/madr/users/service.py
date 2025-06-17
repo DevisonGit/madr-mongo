@@ -15,6 +15,13 @@ async def create_user(user: UserCreate, users_collection):
         raise HTTPException(
             status_code=HTTPStatus.CONFLICT, detail='Email already exists'
         )
+    existing = await repository.get_user_by_username(
+        user.username, users_collection
+    )
+    if existing:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT, detail='Username already exists'
+        )
     user_dict = user.model_dump()
     user_dict['password'] = get_password_hash(user_dict['password'])
     user_dict['username'] = name_in(user_dict['username'])

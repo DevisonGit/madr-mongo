@@ -5,13 +5,17 @@ from pydantic import EmailStr
 def user_helper(user) -> dict:
     return {
         'id': str(user['_id']),
-        'name': user['username'],
+        'username': user['username'],
         'email': user['email'],
     }
 
 
 async def get_user_by_email(email: EmailStr, users_collection):
     return await users_collection.find_one({'email': email})
+
+
+async def get_user_by_username(username: str, users_collection):
+    return await users_collection.find_one({'username': username})
 
 
 async def create_user(user_data: dict, users_collection):

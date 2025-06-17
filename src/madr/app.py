@@ -16,6 +16,8 @@ async def startup_db_client():
         db_name = settings.DATABASE_URL.split('/')[-1]
         app.mongodb_client = get_motor_client()
         app.mongodb = app.mongodb_client[db_name]
+    await app.mongodb.authors.create_index('name', unique=True)
+    await app.mongodb.books.create_index('title', unique=True)
 
 
 app.include_router(users_router)
