@@ -45,7 +45,7 @@ async def test_jwt_not_subject_email(client, user):
 
 @pytest.mark.asyncio
 async def test_jwt_not_user(client, user):
-    data = {'sub': 'invalid user'}
+    data = {'sub': 'invalid user 123'}
     token = create_access_token(data)
     response = await client.delete(
         f'/users/{user["_id"]}', headers={'Authorization': f'Bearer {token}'}

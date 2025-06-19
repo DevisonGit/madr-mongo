@@ -65,9 +65,7 @@ async def client(test_app):
 @pytest_asyncio.fixture
 async def user(test_app):
     password = 'testtest'
-    user_data = UserCreate(
-        username='testuser', email='test@example.com', password=password
-    )
+    user_data = UserFactory()
     user_data.password = get_password_hash(password)
     user = user_data.model_dump()
 
@@ -130,9 +128,7 @@ async def book(test_app, author):
 @pytest_asyncio.fixture
 async def other_user(test_app):
     password = 'testtest'
-    user_data = UserCreate(
-        username='test', email='test@example.br', password=password
-    )
+    user_data = UserFactory()
     user_data.password = get_password_hash(password)
     user = user_data.model_dump()
 
